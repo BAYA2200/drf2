@@ -10,9 +10,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path("tweet/<int:tweet_id>/comments/", views.CommentListCreateAPIView.as_view()),
     path("tweet/<int:tweet_id>/comments/<int:pk>/", views.CommentListCreateAPIView.as_view()),
-    path("tweet/<int:tweet_id>/like/", views.CommentListCreateAPIView.as_view()),
-    path("tweet/<int:tweet_id>/dislike/", views.CommentListCreateAPIView.as_view()),
-    path("comment/<int:comment_id>/dislike/", views.CommentListLikeDislikeCreateAPIView.as_view()),
-    path("comment/<int:comment_id>/like/", views.CommentListLikeDislikeCreateAPIView.as_view()),
-
+    path("tweet/<int:tweet_id>/<str:status_slug>/", views.PostTweetDislike.as_view()),
 ]

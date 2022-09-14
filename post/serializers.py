@@ -5,8 +5,7 @@ from .models import Tweet, Comment
 
 class TweetSerializer(serializers.ModelSerializer):
     post_username = serializers.ReadOnlyField()
-    get_likes = serializers.ReadOnlyField()
-    get_dislikes = serializers.ReadOnlyField()
+    get_status = serializers.ReadOnlyField()
 
     class Meta:
         model = Tweet

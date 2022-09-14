@@ -8,7 +8,8 @@ from rest_framework.viewsets import ModelViewSet
 from .serializers import TweetSerializer, CommentSerializer
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from .permissions import IsAuthorPermission
-from .models import Tweet, Comment, LikeTweet, DislikeTweet, LikeComment, DislikeComment
+from .models import Tweet, Comment, LikeTweet, DislikeTweet, LikeComment, DislikeComment, LikeDislikeTweet, TweetStatus, \
+    CommentStatus, LikeDislikeComment
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView, get_object_or_404, \
     RetrieveUpdateDestroyAPIView
 from .paginations import StandardPagination
@@ -66,47 +67,48 @@ class CommentRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
 
 
 class PostTweetLike(APIView):
-    def get(self, request, tweet_id):
+    def get(self, request, tweet_id, status_slug):
         tweet = get_object_or_404(Tweet, id=tweet_id)
+        tweet_status = get_object_or_404(LikeDislikeTweet, slug=status_slug)
         try:
-            like = LikeTweet.objects.create(tweet=tweet, user=request.user)
+            like_dislike = LikeDislikeTweet.objects.create(tweet=tweet, user=request.user, status=tweet_status)
         except IntegrityError:
-            data = {'error': f'tweet {tweet_id} already liked by {request.user.username}'}
+            like_dislike = LikeDislikeTweet.objects.get(tweet=tweet, user=request.user)
+            like_dislike.delete()
+            data = {'error': f'tweet {tweet_id} changed status by {request.user.username}'}
             return Response(data, status=status.HTTP_403_FORBIDDEN)
         else:
-            data = {'message': f'tweet {tweet_id} liked by {request.user.username}'}
+            data = {'message': f'tweet {tweet_id} changed status by {request.user.username}'}
             return Response(data, status=status.HTTP_201_CREATED)
 
 
 class PostTweetDislike(APIView):
-    def get(self, request, tweet_id):
+    def get(self, request, tweet_id, status_slug):
         tweet = get_object_or_404(Tweet, id=tweet_id)
+        tweet_status = get_object_or_404(TweetStatus, slug=status_slug)
         try:
-            dislike = DislikeTweet.objects.create(tweet=tweet, user=request.user)
+            like_dislike = LikeDislikeTweet.objects.create(tweet=tweet, user=request.user)
         except IntegrityError:
-            data = {'error': f"tweet {tweet_id} already disliked by {request.user.username}"}
-            return Response(data, status=status.HTTP_403_FORBIDDEN)
+            like_dislike = LikeDislikeTweet.objects.get(tweet=tweet, user=request.user)
+            like_dislike.status = tweet_status
+            like_dislike.save()
+            data = {'error': f'tweet {tweet_id} changed status by {request.user.username}'}
+            return Response(data, status=status.HTTP_200_OK)
         else:
-            data = {'message': f"tweet {tweet_id} disliked by {request.user.username}"}
+            data = {'message': f'tweet {tweet_id} got status from {request.user.username}'}
             return Response(data, status=status.HTTP_201_CREATED)
 
 
-class CommentListLikeDislikeCreateAPIView(ListCreateAPIView):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
-    authentication_classes = [SessionAuthentication, TokenAuthentication]
-    permission_classes = [IsAuthorPermission, ]
-    pagination_class = StandardPagination
-
-
-
-
 class PostCommentLike(APIView):
-    def get(self, request, comment_id):
+    def get(self, request, comment_id, status_slug):
         comment = get_object_or_404(Comment, id=comment_id)
+        comment_status = get_object_or_404(LikeDislikeComment, slug=status_slug)
         try:
-            like = LikeComment.objects.create(comment=comment, user=request.user)
+            like_dislike = LikeDislikeComment.objects.create(comment=comment, user=request.user)
         except IntegrityError:
+            like_dislike = LikeDislikeComment.objects.get(comment=comment, user=request.user)
+            like_dislike.status = comment_status
+            like_dislike.save()
             data = {'error': f'comment {comment_id} already liked by {request.user.username}'}
             return Response(data, status=status.HTTP_403_FORBIDDEN)
         else:
@@ -115,13 +117,17 @@ class PostCommentLike(APIView):
 
 
 class PostCommentDislike(APIView):
-    def get(self, request, comment_id):
+    def get(self, request, comment_id, status_slug):
         comment = get_object_or_404(Comment, id=comment_id)
+        comment_status = get_object_or_404(CommentStatus, slug=status_slug)
         try:
             dislike = DislikeTweet.objects.create(comment=comment, user=request.user)
         except IntegrityError:
+            like_dislike = LikeDislikeComment.objects.get(comment=comment, user=request.user)
+            like_dislike.status = comment_status
+            like_dislike.save()
             data = {'error': f"comment {comment_id} already disliked by {request.user.username}"}
-            return Response(data, status=status.HTTP_403_FORBIDDEN)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             data = {'message': f"comment {comment_id} disliked by {request.user.username}"}
             return Response(data, status=status.HTTP_201_CREATED)
